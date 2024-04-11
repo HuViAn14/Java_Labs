@@ -40,12 +40,19 @@ public class CarCatalog {
         }
     }
 
+    public HashMap<String, ArrayList<Car>> getCatalogCopy()
+    {
+        return new HashMap<>(cars);
+    }
+
     /**
      * Removes a car from the catalog.
      * @param car The car to remove.
      */
     public void removeCar(Car car) {
         cars.get(car.getBrand()).remove(car);
+        if(cars.get(car.getBrand()).isEmpty())
+            cars.remove(car.getBrand());
     }
 
     /**
@@ -76,6 +83,63 @@ public class CarCatalog {
     }
 
     /**
+     * Finds cars in the catalog by year.
+     * @param year The production year of cars to search for.
+     * @return An ArrayList of cars matching the specified year.
+     */
+    public ArrayList<Car> findCarsByYear(int year) {
+        ArrayList<Car> result = new ArrayList<>();
+        for (List<Car> carBrand : cars.values())
+        {
+            for (Car car : carBrand) {
+                if (car.getYear() == year) {
+                    result.add(car);
+                }
+            }
+        }
+        return result;
+    }
+
+     /**
+     * Finds cars in the catalog by price.
+     * @param price The price of cars to search for.
+     * @return An ArrayList of cars matching the specified price.
+     */
+    public ArrayList<Car> findCarsByPrice(int price) {
+        ArrayList<Car> result = new ArrayList<>();
+        for (List<Car> carBrand : cars.values())
+        {
+            for (Car car : carBrand) {
+                if (car.getPrice() == price) {
+                    result.add(car);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Finds cars in the catalog by price.
+     * @param priceMin Minimum price of cars to search for.
+     * @param priceMax MAximum price of cars to search for.
+     * @return An ArrayList of cars matching the specified price.
+     */
+    public ArrayList<Car> findCarsByPrice(int priceMin, int priceMax) {
+        ArrayList<Car> result = new ArrayList<>();
+        for (List<Car> carBrand : cars.values())
+        {
+            for (Car car : carBrand) {
+                if (car.getPrice() >= priceMin && car.getPrice() <= priceMax) {
+                    result.add(car);
+                }
+            }
+        }
+        return result;
+    }
+
+
+
+    /**
      * Returns a list of all cars in the catalog sorted by price.
      * @return An ArrayList of cars sorted by price.
      */
@@ -88,5 +152,27 @@ public class CarCatalog {
             result.addAll(carBrand);
         }
         return result;
+    }
+
+    
+
+    public void printCatalog()
+    {
+        for(String key : cars.keySet())
+        {
+            ArrayList<Car> brand = cars.get(key);
+            System.out.println(key);
+            for(Car car : brand)
+            {
+                System.out.print("\t");
+                System.out.println(car.getModel());
+                System.out.print("\t");
+                System.out.println(car.getYear());
+                System.out.print("\t");
+                System.out.println(car.getEngineType());
+                System.out.print("\t");
+                System.out.println(car.getPrice());
+            }
+        }
     }
 }

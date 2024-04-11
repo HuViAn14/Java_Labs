@@ -1,5 +1,5 @@
 package CarsCatalog;
-
+import java.util.Objects;
 /**
  * @author Huk Vitaliy
  * @version 0.1.0
@@ -117,5 +117,23 @@ public class Car {
         System.out.println("Year: " + year);
         System.out.println("Engine Type: " + engineType);
         System.out.println("Price: " + price);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        // Check if the object is null or not an instance of Car
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        
+        // Cast the object to Car
+        Car otherCar = (Car) obj;
+        
+        // Check for equality of all fields
+        return year == otherCar.year &&
+               Double.compare(otherCar.price, price) == 0 &&
+               Objects.equals(brand, otherCar.brand) &&
+               Objects.equals(model, otherCar.model) &&
+               engineType == otherCar.engineType;
     }
 }
