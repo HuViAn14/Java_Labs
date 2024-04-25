@@ -9,6 +9,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import java.util.Scanner;
 
 public class CatalogFileManagment {
@@ -26,19 +30,23 @@ public class CatalogFileManagment {
         file.createNewFile();
         FileWriter writer;
         writer = new FileWriter(file);
-
+        Gson gson = new Gson();
         Set<String> keys = catalog.keySet();
+        ArrayList<Car> cars = new ArrayList<Car>();
         for (String key : keys) {
-            writer.write(key + "\n");
-            ArrayList<Car> brand = catalog.get(key);
-            for (Car car : brand) {
-                writer.write("\t"
-                        + car.getModel() + "\n\t"
-                        + car.getEngineType() + "\n\t"
-                        + Integer.toString(car.getYear()) + "\n\t"
-                        + car.getPrice() + "\n\t\n");
-            }
+            // writer.write(key + "\n");
+            cars.addAll(catalog.get(key));
+            
+            // for (Car car : brand) {
+            //     gson.toJson(car, writer);
+            //     // writer.write("\t"
+            //     //         + car.getModel() + "\n\t"
+            //     //         + car.getEngineType() + "\n\t"
+            //     //         + Integer.toString(car.getYear()) + "\n\t"
+            //     //         + car.getPrice() + "\n\t\n");
+            // }
         }
+        gson.toJson(cars, writer);
         writer.close();
     }
 
@@ -46,32 +54,25 @@ public class CatalogFileManagment {
         FileReader reader = new FileReader(file);
         BufferedReader bufferedReader = new BufferedReader(reader);
 
-        String brand;
-        String model;
-        int year;
-        EngineType engineType;
-        double price;
+        // String brand;
+        // String model;
+        // int year;
+        // EngineType engineType;
+        // double price;
 
         CarCatalog carCatalog = new CarCatalog();
+        Gson gson = new Gson();
+        // String line;
+        // while (Car car = gson.fromJson(reader, Car.class);) {
+            
+        //     Car car = gson.fromJson(reader, Car.class);
+        //     //new Car(brand, model, year, engineType, price);
+        //     carCatalog.addCar(car);
+        // }
 
-        String line;
-        while ((line = bufferedReader.readLine()) != null) {
-            brand = line.trim();
-            line = bufferedReader.readLine();
-            model = line.trim();
-            line = bufferedReader.readLine();
-            engineType = EngineType.valueOf(line.trim().toUpperCase());
-            line = bufferedReader.readLine();
-            year = Integer.parseInt(line.trim());
-            line = bufferedReader.readLine();
-            price = Double.parseDouble(line);
-            line = bufferedReader.readLine();
-
-            Car car = new Car(brand, model, year, engineType, price);
-
+        ArrayList<Car> cars = gson.fromJson(reader, new TypeToken<ArrayList<Car>>(){}.getType());
+        for(Car car : cars)
             carCatalog.addCar(car);
-        }
-
         reader.close();
         bufferedReader.close();
         return carCatalog;

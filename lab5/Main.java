@@ -26,7 +26,7 @@ public class Main {
         catalog.addCar(car2);
         catalog.addCar(car3);
 
-        CatalogFileManagment cfm = new CatalogFileManagment("catalog1.txt");
+        CatalogFileManagment cfm = new CatalogFileManagment("catalog1.json");
         cfm.createCatalogFile(catalog.getCatalogCopy());
         CarCatalog c = cfm.fromFileToCatalogHash();
         System.out.println("Catalog from file");
