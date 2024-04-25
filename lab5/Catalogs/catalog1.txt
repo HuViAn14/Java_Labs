@@ -1,0 +1,18 @@
+Tesla
+	Model x
+	ELECTRIC
+	2021
+	80000.0
+	
+Toyota
+	Corolla
+	PETROL
+	2020
+	25000.0
+	
+BMW
+	X5
+	DIESEL
+	2019
+	60000.0
+	
