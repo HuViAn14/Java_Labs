@@ -34,17 +34,7 @@ public class CatalogFileManagment {
         Set<String> keys = catalog.keySet();
         ArrayList<Car> cars = new ArrayList<Car>();
         for (String key : keys) {
-            // writer.write(key + "\n");
             cars.addAll(catalog.get(key));
-            
-            // for (Car car : brand) {
-            //     gson.toJson(car, writer);
-            //     // writer.write("\t"
-            //     //         + car.getModel() + "\n\t"
-            //     //         + car.getEngineType() + "\n\t"
-            //     //         + Integer.toString(car.getYear()) + "\n\t"
-            //     //         + car.getPrice() + "\n\t\n");
-            // }
         }
         gson.toJson(cars, writer);
         writer.close();
@@ -54,21 +44,8 @@ public class CatalogFileManagment {
         FileReader reader = new FileReader(file);
         BufferedReader bufferedReader = new BufferedReader(reader);
 
-        // String brand;
-        // String model;
-        // int year;
-        // EngineType engineType;
-        // double price;
-
         CarCatalog carCatalog = new CarCatalog();
         Gson gson = new Gson();
-        // String line;
-        // while (Car car = gson.fromJson(reader, Car.class);) {
-            
-        //     Car car = gson.fromJson(reader, Car.class);
-        //     //new Car(brand, model, year, engineType, price);
-        //     carCatalog.addCar(car);
-        // }
 
         ArrayList<Car> cars = gson.fromJson(reader, new TypeToken<ArrayList<Car>>(){}.getType());
         for(Car car : cars)
