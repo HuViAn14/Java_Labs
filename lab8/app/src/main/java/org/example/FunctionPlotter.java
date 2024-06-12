@@ -2,23 +2,26 @@ package org.example;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.util.function.Function;
 
 public class FunctionPlotter extends JPanel {
 
     private static final int WIDTH = 800;
     private static final int HEIGHT = 600;
     private static final int MARGIN = 50;
-    private static final int STEP = 1;
-
+    private double scale = 50;
     private double A = 1;
     private double B = 1;
     private double C = 1;
     private String functionType = "sin";
+    private Point origin = new Point(WIDTH / 2, HEIGHT / 2);
 
     public FunctionPlotter() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        addMouseWheelListener(new ZoomHandler());
+        addMouseListener(new DragHandler());
+        addMouseMotionListener(new DragHandler());
     }
 
     @Override
@@ -26,73 +29,64 @@ public class FunctionPlotter extends JPanel {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setStroke(new BasicStroke(2));
 
         // Draw axes
-        g2.setStroke(new BasicStroke(1));
-        g2.setColor(Color.BLACK);
-        g2.drawLine(MARGIN, HEIGHT / 2, WIDTH - MARGIN, HEIGHT / 2);
-        g2.drawLine(WIDTH / 2, MARGIN, WIDTH / 2, HEIGHT - MARGIN);
+        g2.drawLine(0, origin.y, WIDTH, origin.y);
+        g2.drawLine(origin.x, 0, origin.x, HEIGHT);
 
-        // Draw ticks on axes
-        drawTicks(g2);
-
-        // Set thicker stroke for function lines
-        g2.setStroke(new BasicStroke(2));
+        drawGrid(g2);
 
         // Draw selected function
         switch (functionType) {
             case "sin":
-                drawFunction(g2, this::sinFunction, new Color(139, 0, 0)); // Dark red
+                drawFunction(g2, this::sinFunction, Color.RED);
                 break;
             case "cos":
-                drawFunction(g2, this::cosFunction, new Color(0, 0, 139)); // Dark blue
+                drawFunction(g2, this::cosFunction, Color.BLUE);
                 break;
             case "tan":
-                drawFunction(g2, this::tanFunction, new Color(0, 100, 0)); // Dark green
+                drawFunction(g2, this::tanFunction, Color.GREEN);
                 break;
             case "ctan":
-                drawFunction(g2, this::ctanFunction, new Color(0, 139, 139)); // Dark cyan
+                drawFunction(g2, this::ctanFunction, Color.PINK);
                 break;
             case "parabola":
-                drawFunction(g2, this::parabolaFunction, new Color(139, 0, 139)); // Dark magenta
+                drawFunction(g2, this::parabolaFunction, Color.MAGENTA);
                 break;
             case "ellipse":
-                drawEllipse(g2, new Color(255, 69, 0)); // Dark orange
+                drawEllipse(g2, Color.ORANGE);
                 break;
         }
     }
 
-    private void drawTicks(Graphics2D g2) {
-        int tickLength = 5;
-        int tickInterval = 50;
-        int labelOffset = 15;
+    private void drawGrid(Graphics2D g2) {
+        g2.setStroke(new BasicStroke(1));
+        g2.setColor(Color.LIGHT_GRAY);
 
-        // X-axis ticks and labels
-        for (int x = MARGIN; x < WIDTH - MARGIN; x += tickInterval) {
-            g2.drawLine(x, HEIGHT / 2 - tickLength, x, HEIGHT / 2 + tickLength);
-            int value = (x - WIDTH / 2) / 50;
-            if (value != 0) {
-                g2.drawString(Integer.toString(value), x - 5, HEIGHT / 2 + labelOffset);
-            }
+        int step = (int) scale;
+
+        for (int x = origin.x % step; x < WIDTH; x += step) {
+            g2.drawLine(x, 0, x, HEIGHT);
+            g2.setColor(Color.BLACK);
+            g2.drawString(String.format("%.1f", (x - origin.x) / scale), x, origin.y + 15);
+            g2.setColor(Color.LIGHT_GRAY);
         }
-
-        // Y-axis ticks and labels
-        for (int y = MARGIN; y < HEIGHT - MARGIN; y += tickInterval) {
-            g2.drawLine(WIDTH / 2 - tickLength, y, WIDTH / 2 + tickLength, y);
-            int value = (HEIGHT / 2 - y) / 50;
-            if (value != 0) {
-                g2.drawString(Integer.toString(value), WIDTH / 2 + labelOffset, y + 5);
-            }
+        for (int y = origin.y % step; y < HEIGHT; y += step) {
+            g2.drawLine(0, y, WIDTH, y);
+            g2.setColor(Color.BLACK);
+            g2.drawString(String.format("%.1f", (origin.y - y) / scale), origin.x + 5, y);
+            g2.setColor(Color.LIGHT_GRAY);
         }
     }
 
     private void drawFunction(Graphics2D g2, Function<Double, Double> function, Color color) {
         g2.setColor(color);
-        for (int x = -WIDTH / 2; x < WIDTH / 2; x += STEP) {
-            double x1 = x / 50.0;
+        g2.setStroke(new BasicStroke(2));
+        for (int x = -WIDTH / 2; x < WIDTH / 2; x++) {
+            double x1 = x / scale;
             double y1 = function.apply(x1);
-
-            double x2 = (x + STEP) / 50.0;
+            double x2 = (x + 1) / scale;
             double y2 = function.apply(x2);
 
             int px1 = toPixelX(x1);
@@ -106,15 +100,14 @@ public class FunctionPlotter extends JPanel {
 
     private void drawEllipse(Graphics2D g2, Color color) {
         g2.setColor(color);
-        double a = A; // semi-major axis
-        double b = B; // semi-minor axis
-        for (int x = -WIDTH / 2; x < WIDTH / 2; x += STEP) {
-            double x1 = x / 50.0;
-            if (Math.abs(x1) > a) continue;
-            double[] y1 = ellipseFunction(x1);
+        g2.setStroke(new BasicStroke(2));
 
-            double x2 = (x + STEP) / 50.0;
-            if (Math.abs(x2) > a) continue;
+        double step = 1.0 / scale; // Smaller step for smoother ellipse
+
+        for (double t = -A; t <= A; t += step) {
+            double x1 = t;
+            double[] y1 = ellipseFunction(x1);
+            double x2 = t + step;
             double[] y2 = ellipseFunction(x2);
 
             int px1 = toPixelX(x1);
@@ -130,27 +123,27 @@ public class FunctionPlotter extends JPanel {
     }
 
     private int toPixelX(double x) {
-        return (int) (WIDTH / 2 + x * 50);
+        return origin.x + (int) (x * scale);
     }
 
     private int toPixelY(double y) {
-        return (int) (HEIGHT / 2 - y * 50);
+        return origin.y - (int) (y * scale);
     }
 
     private double sinFunction(double x) {
-        return A + B * Math.sin(C * x);
+        return A * Math.sin(B * x + C);
     }
 
     private double cosFunction(double x) {
-        return A + B * Math.cos(C * x);
+        return A * Math.cos(B * x + C);
     }
 
     private double tanFunction(double x) {
-        return A + B * Math.tan(C * x);
+        return A * Math.tan(B * x + C);
     }
 
     private double ctanFunction(double x) {
-        return A + B / Math.tan(C * x);
+        return A / Math.tan(B * x + C);
     }
 
     private double parabolaFunction(double x) {
@@ -164,6 +157,36 @@ public class FunctionPlotter extends JPanel {
         double yUpper = Math.sqrt((1 - (x * x) / (a * a)) * (b * b));
         double yLower = -yUpper;
         return new double[]{yUpper, yLower};
+    }
+
+    private class ZoomHandler extends MouseAdapter {
+        @Override
+        public void mouseWheelMoved(MouseWheelEvent e) {
+            double delta = 1.1;
+            if (e.getPreciseWheelRotation() < 0) {
+                scale *= delta;
+            } else {
+                scale /= delta;
+            }
+            repaint();
+        }
+    }
+
+    private class DragHandler extends MouseAdapter {
+        private Point lastPoint;
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+            lastPoint = e.getPoint();
+        }
+
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            Point currentPoint = e.getPoint();
+            origin.translate(currentPoint.x - lastPoint.x, currentPoint.y - lastPoint.y);
+            lastPoint = currentPoint;
+            repaint();
+        }
     }
 
     public static void main(String[] args) {
@@ -191,25 +214,17 @@ public class FunctionPlotter extends JPanel {
         frame.add(controlPanel, BorderLayout.NORTH);
         frame.add(plotter, BorderLayout.CENTER);
 
-        plotButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                plotter.A = Double.parseDouble(aField.getText());
-                plotter.B = Double.parseDouble(bField.getText());
-                plotter.C = Double.parseDouble(cField.getText());
-                plotter.functionType = (String) functionList.getSelectedItem();
-                plotter.repaint();
-            }
+        plotButton.addActionListener(e -> {
+            plotter.A = Double.parseDouble(aField.getText());
+            plotter.B = Double.parseDouble(bField.getText());
+            plotter.C = Double.parseDouble(cField.getText());
+            plotter.functionType = (String) functionList.getSelectedItem();
+            plotter.repaint();
         });
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
-    }
-
-    @FunctionalInterface
-    interface Function<T, R> {
-        R apply(T t);
     }
 }
