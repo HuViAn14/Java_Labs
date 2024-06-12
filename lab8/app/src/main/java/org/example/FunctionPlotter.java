@@ -3,6 +3,9 @@ package org.example;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.AffineTransform;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 public class FunctionPlotter extends JPanel {
@@ -16,6 +19,7 @@ public class FunctionPlotter extends JPanel {
     private double C = 1;
     private String functionType = "sin";
     private Point origin = new Point(WIDTH / 2, HEIGHT / 2);
+    private final List<PlotFunction> functions = new ArrayList<>();
 
     public FunctionPlotter() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -37,26 +41,13 @@ public class FunctionPlotter extends JPanel {
 
         drawGrid(g2);
 
-        // Draw selected function
-        switch (functionType) {
-            case "sin":
-                drawFunction(g2, this::sinFunction, Color.RED);
-                break;
-            case "cos":
-                drawFunction(g2, this::cosFunction, Color.BLUE);
-                break;
-            case "tan":
-                drawFunction(g2, this::tanFunction, Color.GREEN);
-                break;
-            case "ctan":
-                drawFunction(g2, this::ctanFunction, Color.PINK);
-                break;
-            case "parabola":
-                drawFunction(g2, this::parabolaFunction, Color.MAGENTA);
-                break;
-            case "ellipse":
-                drawEllipse(g2, Color.ORANGE);
-                break;
+        // Draw all functions
+        for (PlotFunction plotFunction : functions) {
+            if (plotFunction.type.equals("ellipse")) {
+                drawEllipse(g2, plotFunction);
+            } else {
+                drawFunction(g2, plotFunction.function, plotFunction.color);
+            }
         }
     }
 
@@ -82,7 +73,7 @@ public class FunctionPlotter extends JPanel {
 
     private void drawFunction(Graphics2D g2, Function<Double, Double> function, Color color) {
         g2.setColor(color);
-        g2.setStroke(new BasicStroke(2));
+        g2.setStroke(new BasicStroke(3));  // Increase line width to 3
         for (int x = -WIDTH / 2; x < WIDTH / 2; x++) {
             double x1 = x / scale;
             double y1 = function.apply(x1);
@@ -98,17 +89,17 @@ public class FunctionPlotter extends JPanel {
         }
     }
 
-    private void drawEllipse(Graphics2D g2, Color color) {
-        g2.setColor(color);
-        g2.setStroke(new BasicStroke(2));
+    private void drawEllipse(Graphics2D g2, PlotFunction plotFunction) {
+        double a = plotFunction.A;
+        double b = plotFunction.B;
+        g2.setColor(plotFunction.color);
+        g2.setStroke(new BasicStroke(3));  // Increase line width to 3
 
-        double step = 1.0 / scale; // Smaller step for smoother ellipse
-
-        for (double t = -A; t <= A; t += step) {
-            double x1 = t;
-            double[] y1 = ellipseFunction(x1);
-            double x2 = t + step;
-            double[] y2 = ellipseFunction(x2);
+        for (int x = (int) (-a * scale); x < (int) (a * scale); x++) {
+            double x1 = x / scale;
+            double[] y1 = ellipseFunction(x1, a, b);
+            double x2 = (x + 1) / scale;
+            double[] y2 = ellipseFunction(x2, a, b);
 
             int px1 = toPixelX(x1);
             int py1Upper = toPixelY(y1[0]);
@@ -130,33 +121,48 @@ public class FunctionPlotter extends JPanel {
         return origin.y - (int) (y * scale);
     }
 
-    private double sinFunction(double x) {
-        return A * Math.sin(B * x + C);
-    }
-
-    private double cosFunction(double x) {
-        return A * Math.cos(B * x + C);
-    }
-
-    private double tanFunction(double x) {
-        return A * Math.tan(B * x + C);
-    }
-
-    private double ctanFunction(double x) {
-        return A / Math.tan(B * x + C);
-    }
-
-    private double parabolaFunction(double x) {
-        return A * x * x + B * x + C;
-    }
-
-    private double[] ellipseFunction(double x) {
-        double a = A; // semi-major axis
-        double b = B; // semi-minor axis
-        if (Math.abs(x) > a) return new double[]{0, 0}; // out of ellipse bounds
+    private double[] ellipseFunction(double x, double a, double b) {
+        if (Math.abs(x) > a) return new double[]{Double.NaN, Double.NaN}; // out of ellipse bounds
         double yUpper = Math.sqrt((1 - (x * x) / (a * a)) * (b * b));
         double yLower = -yUpper;
         return new double[]{yUpper, yLower};
+    }
+
+    private void addFunction(String type, double a, double b, double c) {
+        Function<Double, Double> function;
+        Color color;
+        switch (type) {
+            case "sin":
+                function = (x) -> a * Math.sin(b * x + c);
+                color = new Color(128, 0, 0);  // Dark Red
+                break;
+            case "cos":
+                function = (x) -> a * Math.cos(b * x + c);
+                color = new Color(0, 0, 128);  // Dark Blue
+                break;
+            case "tan":
+                function = (x) -> a * Math.tan(b * x + c);
+                color = new Color(0, 128, 0);  // Dark Green
+                break;
+            case "ctan":
+                function = (x) -> a / Math.tan(b * x + c);
+                color = new Color(128, 0, 128);  // Dark Pink
+                break;
+            case "parabola":
+                function = (x) -> a * x * x + b * x + c;
+                color = new Color(128, 0, 128);  // Dark Magenta
+                break;
+            case "ellipse":
+                function = (x) -> Double.NaN; // Not used, special case
+                color = new Color(255, 165, 0);  // Dark Orange
+                functions.add(new PlotFunction(type, a, b, c, color));
+                repaint();
+                return;
+            default:
+                throw new IllegalArgumentException("Unsupported function type: " + type);
+        }
+        functions.add(new PlotFunction(type, function, a, b, c, color));
+        repaint();
     }
 
     private class ZoomHandler extends MouseAdapter {
@@ -200,6 +206,8 @@ public class FunctionPlotter extends JPanel {
         String[] functions = {"sin", "cos", "tan", "ctan", "parabola", "ellipse"};
         JComboBox<String> functionList = new JComboBox<>(functions);
         JButton plotButton = new JButton("Plot");
+        JButton addButton = new JButton("Add");
+        JButton clearButton = new JButton("Clear");
 
         controlPanel.add(new JLabel("A:"));
         controlPanel.add(aField);
@@ -209,16 +217,32 @@ public class FunctionPlotter extends JPanel {
         controlPanel.add(cField);
         controlPanel.add(functionList);
         controlPanel.add(plotButton);
+        controlPanel.add(addButton);
+        controlPanel.add(clearButton);
 
         frame.setLayout(new BorderLayout());
         frame.add(controlPanel, BorderLayout.NORTH);
         frame.add(plotter, BorderLayout.CENTER);
 
         plotButton.addActionListener(e -> {
+            plotter.functions.clear();
             plotter.A = Double.parseDouble(aField.getText());
             plotter.B = Double.parseDouble(bField.getText());
             plotter.C = Double.parseDouble(cField.getText());
             plotter.functionType = (String) functionList.getSelectedItem();
+            plotter.addFunction(plotter.functionType, plotter.A, plotter.B, plotter.C);
+        });
+
+        addButton.addActionListener(e -> {
+            plotter.A = Double.parseDouble(aField.getText());
+            plotter.B = Double.parseDouble(bField.getText());
+            plotter.C = Double.parseDouble(cField.getText());
+            plotter.functionType = (String) functionList.getSelectedItem();
+            plotter.addFunction(plotter.functionType, plotter.A, plotter.B, plotter.C);
+        });
+
+        clearButton.addActionListener(e -> {
+            plotter.functions.clear();
             plotter.repaint();
         });
 
@@ -226,5 +250,29 @@ public class FunctionPlotter extends JPanel {
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+    }
+
+    private static class PlotFunction {
+        String type;
+        Function<Double, Double> function;
+        double A, B, C;
+        Color color;
+
+        PlotFunction(String type, Function<Double, Double> function, double A, double B, double C, Color color) {
+            this.type = type;
+            this.function = function;
+            this.A = A;
+            this.B = B;
+            this.C = C;
+            this.color = color;
+        }
+
+        PlotFunction(String type, double A, double B, double C, Color color) {
+            this.type = type;
+            this.A = A;
+            this.B = B;
+            this.C = C;
+            this.color = color;
+        }
     }
 }
