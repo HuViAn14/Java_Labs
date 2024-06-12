@@ -28,29 +28,61 @@ public class FunctionPlotter extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // Draw axes
+        g2.setStroke(new BasicStroke(1));
+        g2.setColor(Color.BLACK);
         g2.drawLine(MARGIN, HEIGHT / 2, WIDTH - MARGIN, HEIGHT / 2);
         g2.drawLine(WIDTH / 2, MARGIN, WIDTH / 2, HEIGHT - MARGIN);
+
+        // Draw ticks on axes
+        drawTicks(g2);
+
+        // Set thicker stroke for function lines
+        g2.setStroke(new BasicStroke(2));
 
         // Draw selected function
         switch (functionType) {
             case "sin":
-                drawFunction(g2, this::sinFunction, Color.RED);
+                drawFunction(g2, this::sinFunction, new Color(139, 0, 0)); // Dark red
                 break;
             case "cos":
-                drawFunction(g2, this::cosFunction, Color.BLUE);
+                drawFunction(g2, this::cosFunction, new Color(0, 0, 139)); // Dark blue
                 break;
             case "tan":
-                drawFunction(g2, this::tanFunction, Color.GREEN);
+                drawFunction(g2, this::tanFunction, new Color(0, 100, 0)); // Dark green
                 break;
             case "ctan":
-                drawFunction(g2, this::ctanFunction, Color.CYAN);
+                drawFunction(g2, this::ctanFunction, new Color(0, 139, 139)); // Dark cyan
                 break;
             case "parabola":
-                drawFunction(g2, this::parabolaFunction, Color.MAGENTA);
+                drawFunction(g2, this::parabolaFunction, new Color(139, 0, 139)); // Dark magenta
                 break;
             case "ellipse":
-                drawEllipse(g2, Color.ORANGE);
+                drawEllipse(g2, new Color(255, 69, 0)); // Dark orange
                 break;
+        }
+    }
+
+    private void drawTicks(Graphics2D g2) {
+        int tickLength = 5;
+        int tickInterval = 50;
+        int labelOffset = 15;
+
+        // X-axis ticks and labels
+        for (int x = MARGIN; x < WIDTH - MARGIN; x += tickInterval) {
+            g2.drawLine(x, HEIGHT / 2 - tickLength, x, HEIGHT / 2 + tickLength);
+            int value = (x - WIDTH / 2) / 50;
+            if (value != 0) {
+                g2.drawString(Integer.toString(value), x - 5, HEIGHT / 2 + labelOffset);
+            }
+        }
+
+        // Y-axis ticks and labels
+        for (int y = MARGIN; y < HEIGHT - MARGIN; y += tickInterval) {
+            g2.drawLine(WIDTH / 2 - tickLength, y, WIDTH / 2 + tickLength, y);
+            int value = (HEIGHT / 2 - y) / 50;
+            if (value != 0) {
+                g2.drawString(Integer.toString(value), WIDTH / 2 + labelOffset, y + 5);
+            }
         }
     }
 
