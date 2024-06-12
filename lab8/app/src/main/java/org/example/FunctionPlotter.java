@@ -3,7 +3,6 @@ package org.example;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -20,12 +19,15 @@ public class FunctionPlotter extends JPanel {
     private String functionType = "sin";
     private Point origin = new Point(WIDTH / 2, HEIGHT / 2);
     private final List<PlotFunction> functions = new ArrayList<>();
+    private List<Point.Double> intersections = new ArrayList<>();
+    private Point hoverPoint = null;
 
     public FunctionPlotter() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         addMouseWheelListener(new ZoomHandler());
         addMouseListener(new DragHandler());
         addMouseMotionListener(new DragHandler());
+        addMouseMotionListener(new HoverHandler());
     }
 
     @Override
@@ -48,6 +50,22 @@ public class FunctionPlotter extends JPanel {
             } else {
                 drawFunction(g2, plotFunction.function, plotFunction.color);
             }
+        }
+
+        // Draw intersection points
+        g2.setColor(Color.BLACK);
+        for (Point.Double intersection : intersections) {
+            int px = toPixelX(intersection.x);
+            int py = toPixelY(intersection.y);
+            g2.fillOval(px - 3, py - 3, 6, 6);
+        }
+
+        // Draw hover point
+        if (hoverPoint != null) {
+            g2.setColor(Color.RED);
+            g2.fillOval(hoverPoint.x - 5, hoverPoint.y - 5, 10, 10);
+            String text = String.format("(%.2f, %.2f)", (hoverPoint.x - origin.x) / scale, (origin.y - hoverPoint.y) / scale);
+            g2.drawString(text, hoverPoint.x + 10, hoverPoint.y - 10);
         }
     }
 
@@ -156,13 +174,41 @@ public class FunctionPlotter extends JPanel {
                 function = (x) -> Double.NaN; // Not used, special case
                 color = new Color(255, 165, 0);  // Dark Orange
                 functions.add(new PlotFunction(type, a, b, c, color));
+                findIntersections();
                 repaint();
                 return;
             default:
                 throw new IllegalArgumentException("Unsupported function type: " + type);
         }
         functions.add(new PlotFunction(type, function, a, b, c, color));
+        findIntersections();
         repaint();
+    }
+
+    private void findIntersections() {
+        intersections.clear();
+        for (int i = 0; i < functions.size(); i++) {
+            for (int j = i + 1; j < functions.size(); j++) {
+                PlotFunction f1 = functions.get(i);
+                PlotFunction f2 = functions.get(j);
+                if (!f1.type.equals("ellipse") && !f2.type.equals("ellipse")) {
+                    intersections.addAll(findIntersections(f1.function, f2.function));
+                }
+            }
+        }
+    }
+
+    private List<Point.Double> findIntersections(Function<Double, Double> f1, Function<Double, Double> f2) {
+        List<Point.Double> points = new ArrayList<>();
+        for (int x = -WIDTH / 2; x < WIDTH / 2; x++) {
+            double x1 = x / scale;
+            double y1 = f1.apply(x1);
+            double y2 = f2.apply(x1);
+            if (Math.abs(y1 - y2) < 1 / scale) {  // Intersection tolerance
+                points.add(new Point.Double(x1, y1));
+            }
+        }
+        return points;
     }
 
     private class ZoomHandler extends MouseAdapter {
@@ -174,6 +220,7 @@ public class FunctionPlotter extends JPanel {
             } else {
                 scale /= delta;
             }
+            findIntersections();
             repaint();
         }
     }
@@ -191,6 +238,23 @@ public class FunctionPlotter extends JPanel {
             Point currentPoint = e.getPoint();
             origin.translate(currentPoint.x - lastPoint.x, currentPoint.y - lastPoint.y);
             lastPoint = currentPoint;
+            repaint();
+        }
+    }
+
+    private class HoverHandler extends MouseMotionAdapter {
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            Point cursor = e.getPoint();
+            hoverPoint = null;
+            for (Point.Double intersection : intersections) {
+                int px = toPixelX(intersection.x);
+                int py = toPixelY(intersection.y);
+                if (Math.abs(cursor.x - px) < 10 && Math.abs(cursor.y - py) < 10) {
+                    hoverPoint = new Point(px, py);
+                    break;
+                }
+            }
             repaint();
         }
     }
@@ -243,6 +307,7 @@ public class FunctionPlotter extends JPanel {
 
         clearButton.addActionListener(e -> {
             plotter.functions.clear();
+            plotter.intersections.clear();
             plotter.repaint();
         });
 
