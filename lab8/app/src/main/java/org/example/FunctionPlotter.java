@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.*;
 
 public class FunctionPlotter extends JPanel {
 
@@ -43,11 +42,14 @@ public class FunctionPlotter extends JPanel {
             case "tan":
                 drawFunction(g2, this::tanFunction, Color.GREEN);
                 break;
+            case "ctan":
+                drawFunction(g2, this::ctanFunction, Color.CYAN);
+                break;
             case "parabola":
                 drawFunction(g2, this::parabolaFunction, Color.MAGENTA);
                 break;
             case "ellipse":
-                drawFunction(g2, this::ellipseFunction, Color.ORANGE);
+                drawEllipse(g2, Color.ORANGE);
                 break;
         }
     }
@@ -57,6 +59,7 @@ public class FunctionPlotter extends JPanel {
         for (int x = -WIDTH / 2; x < WIDTH / 2; x += STEP) {
             double x1 = x / 50.0;
             double y1 = function.apply(x1);
+
             double x2 = (x + STEP) / 50.0;
             double y2 = function.apply(x2);
 
@@ -66,6 +69,31 @@ public class FunctionPlotter extends JPanel {
             int py2 = toPixelY(y2);
 
             g2.drawLine(px1, py1, px2, py2);
+        }
+    }
+
+    private void drawEllipse(Graphics2D g2, Color color) {
+        g2.setColor(color);
+        double a = A; // semi-major axis
+        double b = B; // semi-minor axis
+        for (int x = -WIDTH / 2; x < WIDTH / 2; x += STEP) {
+            double x1 = x / 50.0;
+            if (Math.abs(x1) > a) continue;
+            double[] y1 = ellipseFunction(x1);
+
+            double x2 = (x + STEP) / 50.0;
+            if (Math.abs(x2) > a) continue;
+            double[] y2 = ellipseFunction(x2);
+
+            int px1 = toPixelX(x1);
+            int py1Upper = toPixelY(y1[0]);
+            int py1Lower = toPixelY(y1[1]);
+            int px2 = toPixelX(x2);
+            int py2Upper = toPixelY(y2[0]);
+            int py2Lower = toPixelY(y2[1]);
+
+            g2.drawLine(px1, py1Upper, px2, py2Upper);
+            g2.drawLine(px1, py1Lower, px2, py2Lower);
         }
     }
 
@@ -89,15 +117,21 @@ public class FunctionPlotter extends JPanel {
         return A + B * Math.tan(C * x);
     }
 
+    private double ctanFunction(double x) {
+        return A + B / Math.tan(C * x);
+    }
+
     private double parabolaFunction(double x) {
         return A * x * x + B * x + C;
     }
 
-    private double ellipseFunction(double x) {
-        double a = 5;
-        double b = 3;
-        if (Math.abs(x) > a) return 0;
-        return Math.sqrt((1 - (x * x) / (a * a)) * (b * b));
+    private double[] ellipseFunction(double x) {
+        double a = A; // semi-major axis
+        double b = B; // semi-minor axis
+        if (Math.abs(x) > a) return new double[]{0, 0}; // out of ellipse bounds
+        double yUpper = Math.sqrt((1 - (x * x) / (a * a)) * (b * b));
+        double yLower = -yUpper;
+        return new double[]{yUpper, yLower};
     }
 
     public static void main(String[] args) {
@@ -108,7 +142,7 @@ public class FunctionPlotter extends JPanel {
         JTextField aField = new JTextField("1", 5);
         JTextField bField = new JTextField("1", 5);
         JTextField cField = new JTextField("1", 5);
-        String[] functions = {"sin", "cos", "tan", "parabola", "ellipse"};
+        String[] functions = {"sin", "cos", "tan", "ctan", "parabola", "ellipse"};
         JComboBox<String> functionList = new JComboBox<>(functions);
         JButton plotButton = new JButton("Plot");
 
